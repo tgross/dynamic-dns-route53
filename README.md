@@ -8,7 +8,8 @@ This application sends a DNS query for OpenDNS's `myip.opendns.com` subdomain, w
 
 The application will cache the result in a cache file in `/tmp` and compare it between runs. If the file changes (or is missing), it'll then attempt to upsert an A Record to Route53 for the configured domain and the new IP address.
 
-The `dynamic-dns-route53` application should respect all the typical ways your AWS credentials can be configured (ex. files at `~/.aws/credentials`, IAM role, etc).
+The `dynamic-dns-route53` application should respect all the typical ways your AWS credentials can be configured (ex. files at `~/.aws/credentials`, IAM role, etc). The application will neeed the `route53:ChangeResourceRecordSets` permission.
+
 
 ```
 $ ./dynamic-dns-route53 -help
