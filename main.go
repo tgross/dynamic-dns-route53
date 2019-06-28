@@ -78,7 +78,7 @@ func isIPChanged(path string, ip *dns.A) bool {
 			log.Fatal(err)
 		}
 		if string(content) == ip.String() {
-			return true
+			return false
 		}
 	} else if !os.IsNotExist(err) {
 		log.Fatal(err)
@@ -88,7 +88,7 @@ func isIPChanged(path string, ip *dns.A) bool {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return false
+	return true
 }
 
 func updateRecord(config *Config, ip *dns.A) error {
@@ -96,9 +96,7 @@ func updateRecord(config *Config, ip *dns.A) error {
 	domainName := config.domainName
 	ttl := config.ttl
 
-	updateTime := time.Now().UTC().Format(time.RFC3339)
-	updateMsg := fmt.Sprintf("update '%s' to %s at %s",
-		domainName, ip.A, updateTime)
+	setIdMsg := fmt.Sprintf("%s managed by dynamic-dns-route53", domainName)
 
 	awsSession := session.Must(session.NewSession())
 	r53 := route53.New(awsSession)
@@ -112,11 +110,12 @@ func updateRecord(config *Config, ip *dns.A) error {
 						Type: aws.String(route53.RRTypeA),
 						ResourceRecords: []*route53.ResourceRecord{
 							{
-								Value: aws.String(ip.String()),
+								Value: aws.String(ip.A.String()),
 							},
 						},
 						TTL:           aws.Int64(ttl),
-						SetIdentifier: aws.String(updateMsg),
+						SetIdentifier: aws.String(setIdMsg),
+						Weight:        aws.Int64(100),
 					},
 				},
 			},
@@ -124,7 +123,8 @@ func updateRecord(config *Config, ip *dns.A) error {
 		},
 		HostedZoneId: aws.String(zoneId),
 	}
-	log.Print(updateMsg)
+	updateTime := time.Now().UTC().Format(time.RFC3339)
+	log.Printf("update '%s' to %s at %s", domainName, ip.A, updateTime)
 	_, err := r53.ChangeResourceRecordSets(change)
 	if err != nil {
 		return err
